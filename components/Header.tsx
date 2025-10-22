@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LogoIcon, MenuIcon, HeadsetIcon, SunIcon } from './icons';
+import { MenuIcon, HeadsetIcon, SunIcon } from './icons';
 
 interface HeaderProps {
     isDarkMode: boolean;
@@ -23,16 +23,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme }) => {
     return (
         <header className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
             <div className="flex items-center justify-between h-16 px-4 sm:px-6">
-                <div className="flex items-center space-x-4">
-                    <div className="flex items-center">
-                        <LogoIcon className="h-8 w-auto" />
-                        <div className="ml-2">
-                             <h1 className="text-xl font-bold text-gray-800 dark:text-white">Account Pro</h1>
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="flex-1 flex justify-center px-4">
+                <div className="flex-1 flex justify-start px-4">
                     {/* Placeholder for potential search bar or other central element */}
                 </div>
                 

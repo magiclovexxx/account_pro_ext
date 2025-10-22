@@ -1,21 +1,9 @@
 
 import React from 'react';
+import { logoBase64 } from './logo';
 
 export const LogoIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M38.9999 21.4168C38.9999 18.526 38.0772 15.7749 36.3869 13.5133C34.6966 11.2517 32.3242 9.59961 29.5999 8.81982C29.2481 6.17511 27.9701 3.79377 25.9933 2.11573C24.0165 0.437691 21.4811 -0.34729 18.9999 0.16684C14.0999 1.15684 10.4699 5.38684 10.1599 10.4168C7.1249 11.3968 4.6999 13.8468 3.5399 16.9168C2.3799 19.9868 2.6599 23.4168 4.2399 26.2368C5.8199 29.0568 8.5299 31.0268 11.6699 31.6568H12.9999V29.6568H11.6699C9.0999 29.1268 6.9199 27.5068 5.6799 25.1568C4.4399 22.8068 4.6299 19.9768 6.1499 17.6568C7.6699 15.3368 10.3299 13.8568 13.1599 13.8568H14.9999V23.4168H16.9999V13.8568H20.9999V29.4168H22.9999V13.8568H26.9999V23.4168H28.9999V13.8568H32.9999C36.1599 13.8568 38.9999 16.1768 38.9999 19.4168C38.9999 22.6568 36.1599 24.9168 32.9999 24.9168H28.9999V26.9168H32.9999C37.3999 26.9168 40.9999 23.4868 40.9999 19.4168C40.9999 15.3468 37.3999 11.8568 32.9999 11.8568H29.9999V10.8198C32.3042 11.5396 34.3366 12.9817 35.7999 14.9168C37.4779 16.8336 38.4529 19.2982 38.4999 21.9168H38.9999Z" fill="url(#paint0_linear_4_2)" />
-    <path d="M12 32H36V48H12V32Z" fill="#00AEEF" />
-    <path d="M18 36H16V38H18V36Z" fill="white" />
-    <path d="M22 36H20V38H22V36Z" fill="white" />
-    <path d="M26 36H24V38H26V36Z" fill="white" />
-    <path d="M32 42H16V44H32V42Z" fill="white" />
-    <defs>
-      <linearGradient id="paint0_linear_4_2" x1="4.5" y1="5" x2="36" y2="31.5" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#29ABE2" />
-        <stop offset="1" stopColor="#00AEEF" />
-      </linearGradient>
-    </defs>
-  </svg>
+  <img src={logoBase64} alt="Account Pro Logo" className={className} />
 );
 
 export const MenuIcon: React.FC<{ className?: string }> = ({ className }) => (

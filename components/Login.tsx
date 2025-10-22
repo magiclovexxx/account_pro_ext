@@ -41,12 +41,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 space-y-6 transition-colors duration-300">
       <div className="text-center">
         <div className="flex flex-col items-center justify-center mb-4">
-            <LogoIcon className="h-12 w-auto" />
-            <span className="text-gray-500 dark:text-gray-400 text-xs mt-1">account.pro.vn</span>
+            <LogoIcon className="h-16 w-auto" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-wider">
-          ACCOUNT PRO
-        </h2>
         <p className="mt-2 text-lg text-gray-600 dark:text-gray-300 flex items-center justify-center">
           Welcome to Account Pro! 
           <span role="img" aria-label="waving hand" className="ml-2 text-2xl animate-wave">👋</span>
