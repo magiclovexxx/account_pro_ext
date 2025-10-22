@@ -1,0 +1,5 @@
+{
+  "name": "Account Pro",
+  "description": "A user interface for the Account Pro extension, featuring a login form and tool access, built with React and Tailwind CSS.",
+  "requestFramePermissions": []
+}
