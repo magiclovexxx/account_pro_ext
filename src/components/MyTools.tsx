@@ -190,18 +190,29 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
 
             const domain = new URL(url).hostname;
 
-            const cookiePromises = cookieString.split(';').map(cookiePair => {
-                const trimmedPair = cookiePair.trim();
-                const firstEqual = trimmedPair.indexOf('=');
-                if (firstEqual === -1) return Promise.resolve();
+            const cookiePromises = cookieString
+                .split(';')
+                .map(cookiePair => {
+                    const trimmedPair = cookiePair.trim();
+                    const firstEqual = trimmedPair.indexOf('=');
 
-                const name = trimmedPair.substring(0, firstEqual);
-                const value = trimmedPair.substring(firstEqual + 1);
+                    // A valid cookie must have a name, so '=' cannot be the first character.
+                    // Also handles cases where there's no '='.
+                    if (firstEqual <= 0) {
+                        console.warn(`Skipping invalid cookie part: "${trimmedPair}"`);
+                        return null; // Will be filtered out later
+                    }
 
-                if (!name) return Promise.resolve();
-                // @ts-ignore
-                return chrome.cookies.set({ url, name, value, domain, path: '/' });
-            });
+                    const name = trimmedPair.substring(0, firstEqual);
+                    const value = trimmedPair.substring(firstEqual + 1);
+                    
+                    // @ts-ignore
+                    return chrome.cookies.set({ url, name, value, domain, path: '/' });
+                })
+                // FIX: Replaced `chrome.cookies.Cookie` with `any` in the type predicate
+                // to resolve "Cannot find namespace 'chrome'" error. This happens when
+                // TypeScript doesn't have the type definitions for Chrome Extension APIs.
+                .filter((promise): promise is Promise<any> => promise !== null);
 
             await Promise.all(cookiePromises);
             // @ts-ignore
@@ -213,7 +224,7 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
             if (error instanceof AppwriteException && error.code === 404) {
                 errorMessage = "Không tìm thấy thông tin chi tiết cho công cụ này.";
             } else if (error.message) {
-                 errorMessage = error.message;
+                 errorMessage = `Error: ${error.message}`;
             }
             showToast(errorMessage, 'error');
         } finally {
