@@ -185,33 +185,42 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                 showToast('Thông tin công cụ không hợp lệ (thiếu URL hoặc cookie).', 'error');
                 return;
             }
+            
+            // Clear existing cookies to ensure a clean session
+            await clearCookiesForUrl(url);
 
             showToast('Đang đăng nhập...', 'success');
-
-            const domain = new URL(url).hostname;
+            
+            const targetUrl = new URL(url);
+            const domain = targetUrl.hostname;
 
             const cookiePromises = cookieString
                 .split(';')
                 .map(cookiePair => {
                     const trimmedPair = cookiePair.trim();
+                    if (!trimmedPair) return null;
+
                     const firstEqual = trimmedPair.indexOf('=');
+                    if (firstEqual === -1) return null; // Ignore attributes without value
 
-                    // A valid cookie must have a name, so '=' cannot be the first character.
-                    // Also handles cases where there's no '='.
-                    if (firstEqual <= 0) {
-                        console.warn(`Skipping invalid cookie part: "${trimmedPair}"`);
-                        return null; // Will be filtered out later
+                    const name = trimmedPair.substring(0, firstEqual).trim();
+                    const value = trimmedPair.substring(firstEqual + 1).trim();
+
+                    if (!name) {
+                        console.warn(`Skipping cookie with empty name: "${trimmedPair}"`);
+                        return null;
                     }
-
-                    const name = trimmedPair.substring(0, firstEqual);
-                    const value = trimmedPair.substring(firstEqual + 1);
                     
                     // @ts-ignore
-                    return chrome.cookies.set({ url, name, value, domain, path: '/' });
+                    return chrome.cookies.set({
+                        url,
+                        name,
+                        value,
+                        domain,
+                        path: '/',
+                        secure: targetUrl.protocol === 'https:',
+                    });
                 })
-                // FIX: Replaced `chrome.cookies.Cookie` with `any` in the type predicate
-                // to resolve "Cannot find namespace 'chrome'" error. This happens when
-                // TypeScript doesn't have the type definitions for Chrome Extension APIs.
                 .filter((promise): promise is Promise<any> => promise !== null);
 
             await Promise.all(cookiePromises);
@@ -223,8 +232,10 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
             let errorMessage = "Đã xảy ra lỗi khi truy cập công cụ.";
             if (error instanceof AppwriteException && error.code === 404) {
                 errorMessage = "Không tìm thấy thông tin chi tiết cho công cụ này.";
+            } else if (error.message && error.message.includes('Failed to parse or set cookie')) {
+                errorMessage = "Định dạng cookie không hợp lệ. Vui lòng liên hệ hỗ trợ.";
             } else if (error.message) {
-                 errorMessage = `Error: ${error.message}`;
+                 errorMessage = `Lỗi: ${error.message}`;
             }
             showToast(errorMessage, 'error');
         } finally {
