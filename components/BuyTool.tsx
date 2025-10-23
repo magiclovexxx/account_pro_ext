@@ -4,12 +4,13 @@ import type { Models } from 'appwrite';
 import { Query } from 'appwrite';
 import { ShoppingBagIcon } from './icons';
 
-interface ToolForSale extends Models.Document {
+// FIX: Changed interface to type to fix issue with property '$id' not being inherited.
+type ToolForSale = Models.Document & {
     name: string;
     price: number;
     type: string;
     desc: string;
-}
+};
 
 const BuyTool: React.FC = () => {
     const [tools, setTools] = useState<ToolForSale[]>([]);

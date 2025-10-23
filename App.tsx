@@ -110,11 +110,11 @@ const App: React.FC = () => {
     }
     switch (currentView) {
       case 'my-tools':
-        return <MyTools user={user} />;
+        return <MyTools user={user} showToast={showToast} />;
       case 'buy-tool':
         return <BuyTool />;
       default:
-        return <MyTools user={user} />;
+        return <MyTools user={user} showToast={showToast} />;
     }
   };
 
