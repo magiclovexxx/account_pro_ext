@@ -186,54 +186,64 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                 return;
             }
             
-            // Clear existing cookies to ensure a clean session
             await clearCookiesForUrl(url);
-
             showToast('Đang đăng nhập...', 'success');
             
-            const targetUrl = new URL(url);
-            const domain = targetUrl.hostname;
+            try {
+                const cookiesFromDb = JSON.parse(cookieString);
+                if (!Array.isArray(cookiesFromDb)) {
+                    throw new Error("Dữ liệu cookie không phải là một mảng JSON hợp lệ.");
+                }
 
-            const cookiePromises = cookieString
-                .split(';')
-                .map(cookiePair => {
-                    const trimmedPair = cookiePair.trim();
-                    if (!trimmedPair) return null;
-
-                    const firstEqual = trimmedPair.indexOf('=');
-                    if (firstEqual === -1) return null; // Ignore attributes without value
-
-                    const name = trimmedPair.substring(0, firstEqual).trim();
-                    const value = trimmedPair.substring(firstEqual + 1).trim();
-
-                    if (!name) {
-                        console.warn(`Skipping cookie with empty name: "${trimmedPair}"`);
-                        return null;
+                const setCookiePromises = cookiesFromDb.map((cookieData: any) => {
+                    if (!cookieData || !cookieData.name) {
+                        console.warn('Bỏ qua cookie không có tên:', cookieData);
+                        return Promise.resolve(); // Bỏ qua cookie không hợp lệ
                     }
-                    
-                    // @ts-ignore
-                    return chrome.cookies.set({
-                        url,
-                        name,
-                        value,
-                        domain,
-                        path: '/',
-                        secure: targetUrl.protocol === 'https:',
-                    });
-                })
-                .filter((promise): promise is Promise<any> => promise !== null);
 
-            await Promise.all(cookiePromises);
-            // @ts-ignore
-            await chrome.tabs.create({ url, active: true });
+                    const cookieToSet: any = { // Use 'any' to build the object dynamically
+                        url: url,
+                        name: cookieData.name,
+                        value: cookieData.value,
+                    };
+
+                    // Thêm các thuộc tính tùy chọn nếu chúng tồn tại
+                    if (cookieData.domain) cookieToSet.domain = cookieData.domain;
+                    if (cookieData.path) cookieToSet.path = cookieData.path;
+                    if (cookieData.secure !== undefined) cookieToSet.secure = cookieData.secure;
+                    if (cookieData.httpOnly !== undefined) cookieToSet.httpOnly = cookieData.httpOnly;
+                    if (cookieData.expirationDate) cookieToSet.expirationDate = cookieData.expirationDate;
+                    if (cookieData.storeId) cookieToSet.storeId = cookieData.storeId;
+                    if (cookieData.sameSite) cookieToSet.sameSite = cookieData.sameSite;
+
+                    // Xử lý logic đặc biệt cho cookie __Host-
+                    if (cookieToSet.name.startsWith('__Host-')) {
+                        cookieToSet.secure = true;
+                        cookieToSet.path = '/';
+                        delete cookieToSet.domain; // Bắt buộc cho __Host-
+                    }
+
+                    // @ts-ignore
+                    return chrome.cookies.set(cookieToSet).catch(err => {
+                        console.error(`Không thể thiết lập cookie "${cookieToSet.name}":`, err.message, cookieToSet);
+                    });
+                });
+
+                await Promise.all(setCookiePromises);
+                
+                // @ts-ignore
+                await chrome.tabs.create({ url, active: true });
+
+            } catch (jsonError: any) {
+                console.error("Lỗi khi phân tích hoặc thiết lập cookie:", jsonError);
+                showToast('Định dạng cookie không hợp lệ. Vui lòng liên hệ hỗ trợ.', 'error');
+            }
 
         } catch (error: any) {
             console.error("Lỗi khi truy cập công cụ:", error);
             let errorMessage = "Đã xảy ra lỗi khi truy cập công cụ.";
             if (error instanceof AppwriteException && error.code === 404) {
                 errorMessage = "Không tìm thấy thông tin chi tiết cho công cụ này.";
-            } else if (error.message && error.message.includes('Failed to parse or set cookie')) {
-                errorMessage = "Định dạng cookie không hợp lệ. Vui lòng liên hệ hỗ trợ.";
             } else if (error.message) {
                  errorMessage = `Lỗi: ${error.message}`;
             }
@@ -262,7 +272,7 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center flex-shrink-0">Công cụ của tôi</h2>
                  {tools.length > 0 ? (
                     <div className="flex-grow overflow-y-auto pr-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {tools.map(tool => 
                                 <ToolCard 
                                     key={tool.$id} 

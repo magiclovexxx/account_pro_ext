@@ -56,8 +56,8 @@ const App: React.FC = () => {
         try {
             // @ts-ignore
             const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tabs.length === 0 || !tabs[0].url) {
-                showToast('Không tìm thấy tab hoạt động.', 'error');
+            if (tabs.length === 0 || !tabs[0].url || !tabs[0].url.startsWith('http')) {
+                showToast('Không thể lấy cookie từ tab không hợp lệ.', 'error');
                 return;
             }
             const currentTabUrl = tabs[0].url;
@@ -67,7 +67,8 @@ const App: React.FC = () => {
             if (cookies.length === 0) {
                 setModalCookieString('Không tìm thấy cookie nào cho trang này.');
             } else {
-                const cookieString = cookies.map((cookie: any) => `${cookie.name}=${cookie.value}`).join('; ');
+                // Format as a readable JSON string, which is the expected format for setting cookies now.
+                const cookieString = JSON.stringify(cookies, null, 2);
                 setModalCookieString(cookieString);
             }
             setIsModalOpen(true);
@@ -80,7 +81,12 @@ const App: React.FC = () => {
     } else {
         // Fallback for development
         console.warn("Không chạy trong môi trường extension. Hiển thị dữ liệu giả.");
-        setModalCookieString("test_cookie_name=test_cookie_value; another_cookie=another_value;");
+        // Mock data now reflects the expected array of objects structure
+        const mockCookies = [
+            { "name": "session_id", "value": "abc123xyz" },
+            { "name": "user_pref", "value": "theme=dark" }
+        ];
+        setModalCookieString(JSON.stringify(mockCookies, null, 2));
         setIsModalOpen(true);
     }
   };
