@@ -118,7 +118,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`flex h-screen font-sans bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300`}>
+    <div className={`flex h-full font-sans bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300`}>
       <Sidebar user={user} onLogout={handleLogout} currentView={currentView} onNavigate={setCurrentView} onGetCookie={handleGetCookie} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />

@@ -17,8 +17,12 @@ type Coupon = Models.Document & {
 };
 
 // Use a more flexible type for the initial fetch to handle pre-parsed JSON from Appwrite
-type FetchedToolDetails = Omit<ToolDetails, 'package'> & {
+// This definition is more explicit to avoid TypeScript compilation errors.
+type FetchedToolDetails = Models.Document & {
+    url: string;
+    cookie: string;
     package?: string | (string | PackageOption)[];
+    max_device?: number;
 };
 
 type ToolDetailsWithPackages = ToolDetails & {
