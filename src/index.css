@@ -2,8 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* Prevent scrollbars on the main window */
+}
+
 /* Set a fixed size for the extension popup */
 body {
-  width: 600px;
+  width: 800px;
   height: 600px;
 }
