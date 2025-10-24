@@ -18,6 +18,7 @@ export type UserTool = Models.Document & {
     status: boolean;
     toolName: string; 
     max_device: number;
+    devices?: string[];
 };
 
 // Tool details from 'listTool' collection
@@ -26,64 +27,6 @@ export type ToolDetails = Models.Document & {
     cookie: string;
     package?: string; // Optional package details as a JSON string
     max_device?: number;
-};
-
-interface ToolCardProps {
-    tool: UserTool;
-    onAccess: (tool: UserTool) => void;
-    onRenew: (tool: UserTool) => void;
-    isAccessing: boolean;
-}
-
-const ToolCard: React.FC<ToolCardProps> = ({ tool, onAccess, onRenew, isAccessing }) => {
-    const expirationDate = new Date(tool.expriration_date);
-    const isExpired = expirationDate < new Date();
-    const formattedDate = expirationDate.toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-
-    return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="flex-grow">
-                <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white pr-2">{tool.toolName}</h3>
-                    <span className="flex-shrink-0 text-lg font-semibold text-sky-500">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(tool.price)}</span>
-                </div>
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                    <p><strong>Thiết bị sử dụng:</strong> 1 / {tool.max_device}</p>
-                    <p>
-                        <strong>Ngày hết hạn:</strong>
-                        <span className={`ml-2 font-medium ${isExpired ? 'text-red-500' : 'text-green-500'}`}>{formattedDate}</span>
-                    </p>
-                </div>
-                 {isExpired && (
-                    <p className="text-xs text-red-500 font-semibold mt-2 animate-pulse">
-                        Hết hạn. Vui lòng gia hạn để tiếp tục sử dụng.
-                    </p>
-                )}
-            </div>
-            <div className="mt-6 flex items-center space-x-3">
-                 {!isExpired ? (
-                    <button 
-                        onClick={() => onAccess(tool)}
-                        disabled={isAccessing}
-                        className="w-full py-2 px-4 text-sm font-semibold text-white bg-green-500 rounded-full hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-gray-800 transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
-                    >
-                        {isAccessing ? 'Đang xử lý...' : 'Truy cập'}
-                    </button>
-                 ) : (
-                    <div className="w-full"></div> // Placeholder to keep alignment
-                 )}
-                <button 
-                    onClick={() => onRenew(tool)}
-                    className="w-full py-2 px-4 text-sm font-semibold text-white bg-sky-500 rounded-full hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-gray-800 transition-colors">
-                    Gia hạn
-                </button>
-            </div>
-        </div>
-    );
 };
 
 const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
@@ -161,16 +104,83 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
         fetchTools();
     }, [user.$id]);
 
+    const getDeviceId = async (): Promise<string | null> => {
+        // @ts-ignore
+        if (typeof chrome === 'undefined' || !chrome.storage) return null;
+        try {
+            // @ts-ignore
+            const result = await chrome.storage.local.get(['deviceId']);
+            return result.deviceId || null;
+        } catch (e) {
+            console.error("Lỗi khi lấy deviceId từ bộ nhớ:", e);
+            return null;
+        }
+    };
+
+    const setDeviceId = async (deviceId: string): Promise<void> => {
+        // @ts-ignore
+        if (typeof chrome === 'undefined' || !chrome.storage) return;
+        try {
+            // @ts-ignore
+            await chrome.storage.local.set({ deviceId });
+        } catch (e) {
+            console.error("Lỗi khi lưu deviceId vào bộ nhớ:", e);
+        }
+    };
+
     const handleAccessTool = async (tool: UserTool) => {
         setAccessingToolId(tool.$id);
         
         try {
             // @ts-ignore
-            if (typeof chrome === 'undefined' || !chrome.cookies || !chrome.tabs) {
+            if (typeof chrome === 'undefined' || !chrome.cookies || !chrome.tabs || !chrome.storage) {
                 showToast('Chức năng này chỉ hoạt động trong tiện ích.', 'error');
                 return;
             }
+            
+            // 1. Fetch current order data for accurate device list
+            const currentOrder = await databases.getDocument<UserTool>(
+                appwriteDatabaseId,
+                ordersCollectionId,
+                tool.$id
+            );
+            const devices = currentOrder.devices || [];
+            const max_device = currentOrder.max_device || 1;
 
+            // 2. Get local device ID from browser storage
+            let localDeviceId = await getDeviceId();
+
+            // 3. Check if this device is already registered for this tool
+            const isDeviceRegistered = localDeviceId ? devices.includes(localDeviceId) : false;
+
+            if (!isDeviceRegistered) {
+                 // 4. If not registered, check if the device limit has been reached
+                if (devices.length >= max_device) {
+                    showToast('Đạt giới hạn số lượng thiết bị. Cần liên hệ admin để reset thiết bị.', 'error');
+                    return;
+                }
+
+                // 5. Create and save a new device ID if one doesn't exist locally
+                if (!localDeviceId) {
+                    localDeviceId = crypto.randomUUID();
+                    await setDeviceId(localDeviceId);
+                }
+
+                // 6. Update the order document with the new device ID
+                await databases.updateDocument(
+                    appwriteDatabaseId,
+                    ordersCollectionId,
+                    tool.$id,
+                    { devices: [...devices, localDeviceId] }
+                );
+                showToast('Thiết bị đã được đăng ký thành công.', 'success');
+                 // Refresh local tool state after updating devices
+                setTools(prevTools => prevTools.map(t => 
+                    t.$id === tool.$id ? { ...t, devices: [...devices, localDeviceId!] } : t
+                ));
+            }
+
+            // 7. Proceed with login logic
             showToast('Đang lấy thông tin công cụ...', 'success');
             
             const toolDetails = await databases.getDocument<ToolDetails>(
@@ -198,31 +208,23 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                 const setCookiePromises = cookiesFromDb.map((cookieData: any) => {
                     if (!cookieData || !cookieData.name) {
                         console.warn('Bỏ qua cookie không có tên:', cookieData);
-                        return Promise.resolve(); // Bỏ qua cookie không hợp lệ
+                        return Promise.resolve();
                     }
 
-                    const cookieToSet: any = { // Use 'any' to build the object dynamically
+                    // Fix for: Cannot find namespace 'chrome'.
+                    const cookieToSet = {
                         url: url,
                         name: cookieData.name,
                         value: cookieData.value,
+                        domain: cookieData.domain,
+                        path: cookieData.path,
+                        secure: cookieData.secure,
+                        httpOnly: cookieData.httpOnly,
+                        expirationDate: cookieData.expirationDate,
+                        storeId: cookieData.storeId,
+                        sameSite: cookieData.sameSite,
                     };
-
-                    // Thêm các thuộc tính tùy chọn nếu chúng tồn tại
-                    if (cookieData.domain) cookieToSet.domain = cookieData.domain;
-                    if (cookieData.path) cookieToSet.path = cookieData.path;
-                    if (cookieData.secure !== undefined) cookieToSet.secure = cookieData.secure;
-                    if (cookieData.httpOnly !== undefined) cookieToSet.httpOnly = cookieData.httpOnly;
-                    if (cookieData.expirationDate) cookieToSet.expirationDate = cookieData.expirationDate;
-                    if (cookieData.storeId) cookieToSet.storeId = cookieData.storeId;
-                    if (cookieData.sameSite) cookieToSet.sameSite = cookieData.sameSite;
-
-                    // Xử lý logic đặc biệt cho cookie __Host-
-                    if (cookieToSet.name.startsWith('__Host-')) {
-                        cookieToSet.secure = true;
-                        cookieToSet.path = '/';
-                        delete cookieToSet.domain; // Bắt buộc cho __Host-
-                    }
-
+                    
                     // @ts-ignore
                     return chrome.cookies.set(cookieToSet).catch(err => {
                         console.error(`Không thể thiết lập cookie "${cookieToSet.name}":`, err.message, cookieToSet);
@@ -242,8 +244,8 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
         } catch (error: any) {
             console.error("Lỗi khi truy cập công cụ:", error);
             let errorMessage = "Đã xảy ra lỗi khi truy cập công cụ.";
-            if (error instanceof AppwriteException && error.code === 404) {
-                errorMessage = "Không tìm thấy thông tin chi tiết cho công cụ này.";
+            if (error instanceof AppwriteException) {
+                errorMessage = `Lỗi: ${error.message}`;
             } else if (error.message) {
                  errorMessage = `Lỗi: ${error.message}`;
             }
@@ -272,16 +274,56 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center flex-shrink-0">Công cụ của tôi</h2>
                  {tools.length > 0 ? (
                     <div className="flex-grow overflow-y-auto pr-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {tools.map(tool => 
-                                <ToolCard 
-                                    key={tool.$id} 
-                                    tool={tool} 
-                                    onAccess={handleAccessTool}
-                                    onRenew={handleRenewClick}
-                                    isAccessing={accessingToolId === tool.$id}
-                                />
-                            )}
+                         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead className="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tên</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Giá</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ngày hết hạn</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Thiết bị</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tùy chọn</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {tools.map(tool => {
+                                        const expirationDate = new Date(tool.expriration_date);
+                                        const isExpired = expirationDate < new Date();
+                                        const formattedDate = expirationDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                        const deviceCount = tool.devices?.length || 0;
+
+                                        return (
+                                            <tr key={tool.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{tool.toolName}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Intl.NumberFormat('vi-VN').format(tool.price)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <span className={`font-medium ${isExpired ? 'text-red-500' : 'text-green-500'}`}>{formattedDate}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{deviceCount} / {tool.max_device}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                                    <div className="flex items-center justify-center space-x-2">
+                                                        {!isExpired && (
+                                                            <button 
+                                                                onClick={() => handleAccessTool(tool)}
+                                                                disabled={accessingToolId === tool.$id}
+                                                                className="px-4 py-1 text-xs font-semibold text-white bg-green-500 rounded-full hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                                            >
+                                                                {accessingToolId === tool.$id ? '...' : 'Truy cập'}
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleRenewClick(tool)}
+                                                            className="px-4 py-1 text-xs font-semibold text-white bg-sky-500 rounded-full hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+                                                        >
+                                                            Gia hạn
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                  ) : (

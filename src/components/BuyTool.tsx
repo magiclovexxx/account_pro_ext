@@ -27,7 +27,7 @@ const BuyTool: React.FC = () => {
                     listToolCollectionId,
                     [
                         Query.equal('status', true),
-                        Query.select(['name', 'price', 'type', 'desc']),
+                        Query.select(['name', 'price', 'type']),
                         Query.limit(100)
                     ]
                 );
@@ -64,7 +64,6 @@ const BuyTool: React.FC = () => {
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tên</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Giá</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Loại</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Mô tả</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tùy chọn</th>
                                     </tr>
                                 </thead>
@@ -78,7 +77,6 @@ const BuyTool: React.FC = () => {
                                                 {new Intl.NumberFormat('vi-VN').format(tool.price)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{tool.type}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{tool.desc || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                                                 <button className="p-2 text-sky-500 hover:text-sky-700 dark:hover:text-sky-300 rounded-full hover:bg-sky-100 dark:hover:bg-sky-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-gray-800 transition-all">
                                                     <ShoppingBagIcon className="h-5 w-5" />
