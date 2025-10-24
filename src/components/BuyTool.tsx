@@ -78,7 +78,10 @@ const BuyTool: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{tool.type}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                                <button className="p-2 text-sky-500 hover:text-sky-700 dark:hover:text-sky-300 rounded-full hover:bg-sky-100 dark:hover:bg-sky-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-gray-800 transition-all">
+                                                <button 
+                                                    onClick={() => window.open('https://account.pro.vn/store', '_blank', 'noopener,noreferrer')}
+                                                    className="p-2 text-sky-500 hover:text-sky-700 dark:hover:text-sky-300 rounded-full hover:bg-sky-100 dark:hover:bg-sky-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-gray-800 transition-all"
+                                                >
                                                     <ShoppingBagIcon className="h-5 w-5" />
                                                 </button>
                                             </td>
