@@ -3,6 +3,7 @@ import { databases, appwriteDatabaseId, listToolCollectionId, couponsCollectionI
 import { AppwriteException, Query } from 'appwrite';
 import type { Models } from 'appwrite';
 import type { UserTool, ToolDetails } from './MyTools';
+import PaymentView from './PaymentView';
 
 type PackageOption = {
     title?: string;
@@ -35,6 +36,14 @@ interface RenewalModalProps {
     showToast: (message: string, type: 'success' | 'error') => void;
 }
 
+const BANK_INFO = {
+  accountNo: '0849331080',
+  accountName: 'NGUYEN GIA TRUNG',
+  bankName: 'VPBank',
+  bankShortName: 'VPB',
+  template: 'compact2'
+};
+
 const RenewalModal: React.FC<RenewalModalProps> = ({ tool, onClose, showToast }) => {
     const [toolDetails, setToolDetails] = useState<ToolDetailsWithPackages | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +54,15 @@ const RenewalModal: React.FC<RenewalModalProps> = ({ tool, onClose, showToast })
     const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
     const [couponError, setCouponError] = useState<string | null>(null);
     const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
+    
+    const [view, setView] = useState<'selection' | 'payment'>('selection');
+    const [paymentDetails, setPaymentDetails] = useState<{
+        amount: number;
+        content: string;
+        qrCodeUrl: string;
+    } | null>(null);
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
 
     useEffect(() => {
         const fetchToolDetails = async () => {
@@ -201,21 +219,63 @@ const RenewalModal: React.FC<RenewalModalProps> = ({ tool, onClose, showToast })
     };
 
 
-    const handlePayment = () => {
-        // Placeholder for payment logic
-        showToast('Chức năng thanh toán đang được phát triển.', 'success');
-        console.log({
+    const handlePayment = async () => {
+        if (!toolDetails || isProcessingPayment) return;
+        setIsProcessingPayment(true);
+
+        const transactionId = `PRO${Math.floor(Math.random() * 900000) + 100000}`;
+        const selectedPackage = toolDetails.parsedPackages[selectedPackageIndex];
+        const discountAmount = originalPrice - finalPrice;
+
+        const payload = {
+            userId: tool.userId,
             toolId: tool.toolId,
-            packageName: toolDetails?.parsedPackages?.[selectedPackageIndex],
-            devices: deviceCount,
-            total: finalPrice,
-            discount: appliedCoupon?.code
-        });
-        // onClose();
+            package: {
+                title: selectedPackage.title || `${selectedPackage.days} ngày`,
+                days: selectedPackage.days,
+                price: selectedPackage.price
+            },
+            deviceCount: deviceCount,
+            originalPrice: originalPrice,
+            amount: finalPrice,
+            discount: discountAmount,
+            couponCode: appliedCoupon?.code || "",
+            contentPayment: transactionId,
+            method: "transfer",
+            isPurchased: "false"
+        };
+        
+        console.log("Sending payment request with payload:", payload);
+        // Here you would typically send the request to your backend API
+        // e.g., await fetch('https://your-api.com/create-transaction', { method: 'POST', body: JSON.stringify(payload) });
+
+        try {
+            const params = new URLSearchParams({
+              acc: BANK_INFO.accountNo,
+              bank: BANK_INFO.bankShortName,
+              amount: String(finalPrice),
+              des: transactionId,
+              template: BANK_INFO.template,
+            });
+            const qrCodeUrl = `https://qr.sepay.vn/img?${params.toString()}`;
+
+            setPaymentDetails({
+                amount: finalPrice,
+                content: transactionId,
+                qrCodeUrl: qrCodeUrl,
+            });
+            setView('payment');
+
+        } catch (error) {
+            console.error("Lỗi khi chuẩn bị thanh toán:", error);
+            showToast("Không thể khởi tạo thanh toán. Vui lòng thử lại.", 'error');
+        } finally {
+            setIsProcessingPayment(false);
+        }
     };
     
-    const renderContent = () => {
-         if (isLoading) {
+    const renderSelectionView = () => {
+        if (isLoading) {
             return (
                 <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
@@ -295,11 +355,11 @@ const RenewalModal: React.FC<RenewalModalProps> = ({ tool, onClose, showToast })
                     <div className="text-right">
                          {appliedCoupon && (
                             <span className="block text-sm text-red-500 line-through">
-                                {new Intl.NumberFormat('vi-VN').format(originalPrice)} VNĐ
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(originalPrice)}
                             </span>
                         )}
                         <span className="text-2xl font-bold text-sky-500">
-                            {new Intl.NumberFormat('vi-VN').format(finalPrice)} VNĐ
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(finalPrice)}
                         </span>
                          {appliedCoupon && (
                              <span className="block text-xs font-semibold text-green-500">
@@ -311,9 +371,10 @@ const RenewalModal: React.FC<RenewalModalProps> = ({ tool, onClose, showToast })
                  <div className="mt-8 flex justify-end space-x-3">
                     <button
                         onClick={handlePayment}
-                        className="px-6 py-2 text-sm font-semibold text-white bg-sky-500 rounded-full hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-gray-800 transition-colors"
+                        disabled={isProcessingPayment}
+                        className="px-6 py-2 text-sm font-semibold text-white bg-sky-500 rounded-full hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
                     >
-                        Thanh toán
+                        {isProcessingPayment ? 'Đang xử lý...' : 'Thanh toán'}
                     </button>
                     <button
                         onClick={onClose}
@@ -330,14 +391,27 @@ const RenewalModal: React.FC<RenewalModalProps> = ({ tool, onClose, showToast })
     return (
         <div 
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 transition-opacity duration-300"
-            onClick={onClose}
+            onClick={view === 'selection' ? onClose : undefined}
         >
             <div 
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 m-4 max-w-md w-full transform transition-all duration-300"
+                className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 m-4 max-w-lg w-full transform transition-all duration-300"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Chọn gói sử dụng</h2>
-                {renderContent()}
+                {view === 'payment' && paymentDetails ? (
+                    <PaymentView
+                        amount={paymentDetails.amount}
+                        content={paymentDetails.content}
+                        qrCodeUrl={paymentDetails.qrCodeUrl}
+                        bankInfo={BANK_INFO}
+                        onBack={() => setView('selection')}
+                        onCancel={onClose}
+                    />
+                ) : (
+                    <>
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Chọn gói sử dụng</h2>
+                        {renderSelectionView()}
+                    </>
+                )}
             </div>
         </div>
     );
