@@ -22,14 +22,20 @@ export type UserTool = Models.Document & {
 
 // Tool details from 'listTool' collection
 export type ToolDetails = Models.Document & {
+    name: string;
     url: string;
     cookie: string;
     package?: string; // Optional package details as a JSON string
     max_device?: number;
 };
 
+type EnrichedUserTool = UserTool & {
+    canonicalName: string;
+};
+
+
 const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
-    const [tools, setTools] = useState<UserTool[]>([]);
+    const [tools, setTools] = useState<EnrichedUserTool[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [accessingToolId, setAccessingToolId] = useState<string | null>(null);
@@ -71,24 +77,46 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                     ]
                 );
                 
-                const userTools = orderResponse.documents
-                    .sort((a, b) => new Date(b.expriration_date).getTime() - new Date(a.expriration_date).getTime());
+                const userOrders = orderResponse.documents;
+
+                if (userOrders.length === 0) {
+                    setTools([]);
+                    return;
+                }
+
+                const toolIds = [...new Set(userOrders.map(order => order.toolId))];
+
+                const toolDetailsResponse = await databases.listDocuments<ToolDetails>(
+                    appwriteDatabaseId,
+                    listToolCollectionId,
+                    [
+                        Query.equal('$id', toolIds),
+                        Query.limit(100)
+                    ]
+                );
+
+                const toolDetailsMap = new Map(toolDetailsResponse.documents.map(doc => [doc.$id, doc]));
+
+                const enrichedTools = userOrders.map(order => ({
+                    ...order,
+                    // FIX: Add type assertion to resolve 'Property 'name' does not exist on type 'unknown''.
+                    canonicalName: (toolDetailsMap.get(order.toolId) as ToolDetails | undefined)?.name || order.toolName,
+                })).sort((a, b) => new Date(b.expriration_date).getTime() - new Date(a.expriration_date).getTime());
+                
                 
                 // Check for expired tools and clear cookies
-                const expiredTools = userTools.filter(tool => new Date(tool.expriration_date) < new Date());
+                const expiredTools = enrichedTools.filter(tool => new Date(tool.expriration_date) < new Date());
                 if (expiredTools.length > 0) {
-                    const toolDetailsPromises = expiredTools.map(tool => 
-                        databases.getDocument<ToolDetails>(appwriteDatabaseId, listToolCollectionId, tool.toolId)
-                    );
-                    const toolDetails = await Promise.all(toolDetailsPromises);
-                    const cookieClearingPromises = toolDetails
-                        .filter(detail => detail.url)
-                        .map(detail => clearCookiesForUrl(detail.url));
+                     const cookieClearingPromises = expiredTools
+                        // FIX: Add type assertion to resolve 'Property 'url' does not exist on type 'unknown''.
+                        .map(tool => (toolDetailsMap.get(tool.toolId) as ToolDetails | undefined)?.url)
+                        .filter((url): url is string => !!url)
+                        .map(url => clearCookiesForUrl(url));
                     
                     await Promise.all(cookieClearingPromises);
                 }
 
-                setTools(userTools);
+                setTools(enrichedTools);
 
             } catch (e) {
                 console.error("Failed to fetch tools:", e);
@@ -125,7 +153,7 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
         }
     };
 
-    const handleAccessTool = async (tool: UserTool) => {
+    const handleAccessTool = async (tool: EnrichedUserTool) => {
         setAccessingToolId(tool.$id);
         
         try {
@@ -289,7 +317,7 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
 
                                     return (
                                         <tr key={tool.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{tool.toolName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{tool.canonicalName}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Intl.NumberFormat('vi-VN').format(tool.price)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                 <span className={`font-medium ${isExpired ? 'text-red-500' : 'text-green-500'}`}>{formattedDate}</span>
