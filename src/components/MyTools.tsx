@@ -298,55 +298,57 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
              {tools.length > 0 ? (
                 <div className="flex-grow overflow-y-auto pr-2">
                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tên</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Giá</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ngày hết hạn</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Thiết bị</th>
-                                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tùy chọn</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {tools.map(tool => {
-                                    const expirationDate = new Date(tool.expriration_date);
-                                    const isExpired = expirationDate < new Date();
-                                    const formattedDate = expirationDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                                    const deviceCount = tool.devices?.length || 0;
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead className="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tên</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Giá</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ngày hết hạn</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Thiết bị</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tùy chọn</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {tools.map(tool => {
+                                        const expirationDate = new Date(tool.expriration_date);
+                                        const isExpired = expirationDate < new Date();
+                                        const formattedDate = expirationDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                        const deviceCount = tool.devices?.length || 0;
 
-                                    return (
-                                        <tr key={tool.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{tool.canonicalName}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Intl.NumberFormat('vi-VN').format(tool.price)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                <span className={`font-medium ${isExpired ? 'text-red-500' : 'text-green-500'}`}>{formattedDate}</span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{deviceCount} / {tool.max_device}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                                <div className="flex items-center justify-center space-x-2">
-                                                    {!isExpired && (
-                                                        <button 
-                                                            onClick={() => handleAccessTool(tool)}
-                                                            disabled={accessingToolId === tool.$id}
-                                                            className="px-4 py-1 text-xs font-semibold text-white bg-green-500 rounded-full hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        return (
+                                            <tr key={tool.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{tool.canonicalName}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Intl.NumberFormat('vi-VN').format(tool.price)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <span className={`font-medium ${isExpired ? 'text-red-500' : 'text-green-500'}`}>{formattedDate}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{deviceCount} / {tool.max_device}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                                    <div className="flex items-center justify-center space-x-2">
+                                                        {!isExpired && (
+                                                            <button 
+                                                                onClick={() => handleAccessTool(tool)}
+                                                                disabled={accessingToolId === tool.$id}
+                                                                className="px-4 py-1 text-xs font-semibold text-white bg-green-500 rounded-full hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                                            >
+                                                                {accessingToolId === tool.$id ? '...' : 'Truy cập'}
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={handleRenewClick}
+                                                            className="px-4 py-1 text-xs font-semibold text-white bg-sky-500 rounded-full hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
                                                         >
-                                                            {accessingToolId === tool.$id ? '...' : 'Truy cập'}
+                                                            Gia hạn
                                                         </button>
-                                                    )}
-                                                    <button
-                                                        onClick={handleRenewClick}
-                                                        className="px-4 py-1 text-xs font-semibold text-white bg-sky-500 rounded-full hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
-                                                    >
-                                                        Gia hạn
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
              ) : (
