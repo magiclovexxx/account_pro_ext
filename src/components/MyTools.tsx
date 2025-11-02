@@ -303,10 +303,10 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                                 <thead className="bg-gray-50 dark:bg-gray-700">
                                     <tr>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tên</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tùy chọn</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Giá</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ngày hết hạn</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Thiết bị</th>
-                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tùy chọn</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -319,11 +319,6 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                                         return (
                                             <tr key={tool.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{tool.canonicalName}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Intl.NumberFormat('vi-VN').format(tool.price)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <span className={`font-medium ${isExpired ? 'text-red-500' : 'text-green-500'}`}>{formattedDate}</span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{deviceCount} / {tool.max_device}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                                                     <div className="flex items-center justify-center space-x-2">
                                                         {!isExpired && (
@@ -343,6 +338,11 @@ const MyTools: React.FC<MyToolsProps> = ({ user, showToast }) => {
                                                         </button>
                                                     </div>
                                                 </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Intl.NumberFormat('vi-VN').format(tool.price)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <span className={`font-medium ${isExpired ? 'text-red-500' : 'text-green-500'}`}>{formattedDate}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{deviceCount} / {tool.max_device}</td>
                                             </tr>
                                         );
                                     })}
